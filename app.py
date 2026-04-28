@@ -8,7 +8,24 @@ from modules.prompt_engine import build_prompt
 from modules.evaluator import evaluate_response
 
 # -----------------------------
-# Session State (IMPORTANT)
+# Visit Counter (PERSISTENT)
+# -----------------------------
+def update_visit_count():
+    try:
+        with open("visits.txt", "r") as f:
+            count = int(f.read())
+    except:
+        count = 0
+
+    count += 1
+
+    with open("visits.txt", "w") as f:
+        f.write(str(count))
+
+    return count
+
+# -----------------------------
+# Session State
 # -----------------------------
 if "show_help" not in st.session_state:
     st.session_state.show_help = False
@@ -16,8 +33,11 @@ if "show_help" not in st.session_state:
 if "confidence_history" not in st.session_state:
     st.session_state.confidence_history = []
 
+if "visit_count" not in st.session_state:
+    st.session_state.visit_count = update_visit_count()
+
 # -----------------------------
-# Load models
+# Load Models
 # -----------------------------
 @st.cache_resource
 def load_models():
@@ -58,9 +78,9 @@ def load_models():
 generator, emotion_model = load_models()
 
 # -----------------------------
-# UI - Title + Help Button
+# UI - Header
 # -----------------------------
-col1, col2 = st.columns([6, 1])
+col1, col2, col3 = st.columns([5, 1, 1])
 
 with col1:
     st.title("🧠 Cognitive-Aware AI Chatbot")
@@ -69,8 +89,15 @@ with col2:
     if st.button("❓ Help"):
         st.session_state.show_help = True
 
+with col3:
+    st.markdown(
+        f"<span style='font-size:23px;'>👁 </span> "
+        f"<span style='font-size:20px;'>{st.session_state.visit_count}</span>",
+        unsafe_allow_html=True
+    )
+
 # -----------------------------
-# Help Sidebar (OUTSIDE RUN)
+# Help Sidebar
 # -----------------------------
 if st.session_state.show_help:
     with st.sidebar:
@@ -83,7 +110,7 @@ user_input = st.text_input("Enter your message")
 version = st.selectbox("Prompt Version", ["v1", "v2", "v3"])
 
 # -----------------------------
-# Run Button Logic
+# Run Logic
 # -----------------------------
 if st.button("Run"):
 
@@ -91,24 +118,22 @@ if st.button("Run"):
         st.warning("Please enter a message")
 
     else:
-        # Step 1: Analyze user input
+        # Step 1: Analyze
         analysis = analyze_user_input(user_input, emotion_model)
-
         st.session_state.confidence_history.append(analysis["confidence"])
 
-        # Step 2: Build prompt
+        # Step 2: Prompt
         prompt = build_prompt(user_input, analysis, version)
 
-        # Step 3: Generate response
+        # Step 3: Generate
         response = generator(prompt, max_length=200)
         raw_output = response[0]['generated_text']
 
-        # Fallback content
+        # Fallback
         advice = "Try breaking your task into smaller steps and start with one simple action."
         reasoning = "When you feel unsure, it's often due to lack of clarity or fear of failure. Small steps reduce pressure."
         question = "What part of this task feels most difficult to you?"
 
-        # Structure enforcement
         if "Advice:" not in raw_output:
             output = f"""
 Advice: {advice}
@@ -120,11 +145,11 @@ Question: {question}
         else:
             output = raw_output
 
-        # Clean trimming
+        # Clean
         if "Advice:" in output:
             output = output[output.index("Advice:"):]
 
-        # Step 4: Evaluate response
+        # Step 4: Evaluate
         score = evaluate_response(output)
 
         # -----------------------------
