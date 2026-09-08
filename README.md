@@ -1,4 +1,5 @@
-# 🧠 Cognitive-Aware AI Chatbot  
+# 🧠 [Cognitive-Aware AI Chatbot](https://cognitive-core-ai.streamlit.app/)  
+
 **Prompt Engineering • LLM Evaluation • Cognitive Analysis**
 
 An intelligent AI chatbot that goes beyond traditional responses by analyzing user emotion, confidence, and hesitation patterns to generate structured, adaptive outputs.
